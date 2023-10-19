@@ -1,140 +1,103 @@
-#include<stdio.h>
+#include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
-struct user
-{
+#include <ctype.h> 
 
-	char fullname[50];
-	char email[50];
-	char pass[50];
-    char pass2[50];
-	char username[50];
+struct User {
+    char email[50];
+    char password[50];
 };
 
-void takeinput(char input[50])
-{
-	fgets(input,50,stdin);
-    input[strlen(input)-1]=0;
+union UserData {
+    bool isActive;
+    int active;    
 };
 
-char generatuser(char email[50],char username[50]) //create user from email ahmedmnegm@yahoo.com ==>mail :: user ==> ahmedmnegm
-{
-    for (int i = 0; i <= strlen(email); i++)
-    {
-        if (email[i]=='@')
-        {
-            break;
-        }
-        else
-        {
-            username[i]=email[i];
-        }
-        
-    }
-};
-int main()
-{
-    FILE *us;
-    int select,userfound=0;
-    char userlogin[50],passlogin[50];
-    struct user users;
-    printf("\n");
-    printf("\nWelcome To Our System:\nCreate By : Ahmed Mohy Eldein Negm");
-    printf("\n------------------");
-    printf("\nPlease select your operation");
-    printf("\n------------------");
-    printf("\n1-Register");
-    printf("\n2-Login");
-    printf("\n3-Exit");
-    printf("\n------------------");
-    printf("\nYour Select : ");
-    scanf("%d",&select);
-    fgetc(stdin);
-    switch (select)
-    {
-    case 1:
-    printf("\n");
-    printf("Enter ur FullName :\t");
-    takeinput(users.fullname);
-    printf("\n");
-    printf("Enter ur Email :\t");
-    takeinput(users.email);
-    printf("\n");    
-    printf("Enter ur Pass :");
-    takeinput(users.pass);
-    printf("\n");
-    printf("Confirm ur Pass :");
-    takeinput(users.pass2);
-    if (!strcmp(users.pass,users.pass2))
-    {
-        printf("\nMatched Pass");
-        generatuser(users.email,users.username);
-        us=fopen("Users.dat","a+");
-        fwrite(&users,sizeof(struct user),1,us);
-        if(fwrite!=0)
-        {
-            printf("\nUser Regester Done");
-            printf("\nYour UseName Is : %s",users.username);
-            fclose(us);
-        }
-        else
-        {
-            printf("\nSorry Try Again");
-        }
-    }
-    else
-    {
-        printf("\nNot Matched Pass");
-    }
-    break;
+void registerUser() {
+    struct User user;
+    union UserData data;
 
-    case 2:
-    printf("Enter ur UserName :\t");
-    takeinput(userlogin);
-    printf("\n");    
-    printf("Enter ur Password :");
-    takeinput(passlogin);
-    printf("\n");
-    us=fopen("Users.dat","r");
-    while (fread(&users,sizeof(struct user),1,us))
-    {
-        if (!strcmp(users.username,userlogin))
-        {
-            if (!strcmp(users.pass,passlogin))
-            {
-                printf("!!!!!!!!!! Login Completed !!!!!!!!!!");
-                printf("\n");
-                printf("Welcome %s",users.fullname);
-                printf("\n");
-                printf("Username %s",users.username);
-                printf("\n");
-                printf("Pass %s",users.pass);
-                printf("\n");
-                printf("Email %s",users.email);
-            }
-            else
-            {
-                printf("!!!!!! Error Password !!!!!!");
-            }
-            userfound=1;
-        }
-        if (userfound=0)
-        {
-            printf("Sorry !! Just Create New Account :) ");
-        }
-        
-    }
-    fclose(us);
-    break;
-    case 3:
-    printf("Good Bye");
-    printf("\n");
-    printf("Create By Ahmed Mohy Negm");
-    return 0;
-    break;
-    default:
-        break;
-    }
-    return 0;
+    printf("Enter your email: ");
+    scanf("%s", user.email);
+    printf("Enter your password: ");
+    scanf("%s", user.password);
 
+    char activeInput[10];
+    printf("Are you active? (1 or true for active, 0 or false for inactive) ");
+    scanf("%s", activeInput);
+
+    for (int i = 0; activeInput[i]; i++) {
+        activeInput[i] = tolower(activeInput[i]);
+    }
+
+    if (strcmp(activeInput, "1") == 0 || strcmp(activeInput, "true") == 0) {
+        data.active = 1;
+    } else {
+        data.active = 0;
+    }
+
+    FILE *file = fopen("users.txt", "a");
+    if (file == NULL) {
+        printf("Error opening\n");
+        return;
+    }
+
+    fprintf(file, "%s %s %d\n", user.email, user.password, data.active);
+    fclose(file);
+    printf("Registration successful\n");
 }
 
+int loginUser() {
+    struct User user;
+    union UserData data;
+
+    printf("Enter your email: ");
+    scanf("%s", user.email);
+    printf("Enter your password: ");
+    scanf("%s", user.password);
+
+    FILE *file = fopen("users.txt", "r");
+    if (file == NULL) {
+        printf("Error opening\n");
+        return 0;
+    }
+
+    char line[100];
+    while (fgets(line, sizeof(line), file)) {
+        char savedEmail[50], savedPassword[50];
+        int savedActive;
+        sscanf(line, "%s %s %d", savedEmail, savedPassword, &savedActive);
+
+        if (strcmp(user.email, savedEmail) == 0 && strcmp(user.password, savedPassword) == 0) {
+            data.active = savedActive;
+            fclose(file);
+
+            if (data.active == 1) {
+                printf("Login successful. User is active.\n");
+            } else {
+                printf("Login successful. User is inactive.\n");
+            }
+            return 1;
+        }
+    }
+
+    fclose(file);
+    printf("Login failed. Incorrect email or password\n");
+    return 0;
+}
+
+int main() {
+    int choice;
+    printf("-----------------------------------------\n");
+    printf("1. Register\n2. Login\nEnter your choice: ");
+    scanf("%d", &choice);
+
+    if (choice == 1) {
+        registerUser();
+    } else if (choice == 2) {
+        loginUser();
+    } else {
+        printf("Invalid choice.\n");
+    }
+
+    return 0;
